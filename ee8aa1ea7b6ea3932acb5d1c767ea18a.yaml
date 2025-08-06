@@ -1,0 +1,33 @@
+error: OPEN_BRACKET_EXPECTED
+original_code: >
+    import java.util.*;
+    import java.util.stream.*;
+    import static java.util.stream.Collectors.*;
+    
+    class GroupByFirstLetter {
+        public static void main(String[] args) {
+            List<String> words = Arrays.asList("apple", "banana", "apricot", "blueberry", "avocado");
+    
+            Map<Character, List<String>> grouped = words.stream()
+                    .collect(groupingBy(s -> s.charAt(0)));
+    
+            System.out.println(grouped);
+            // {a=[apple, apricot, avocado], b=[banana, blueberry]}
+        }
+    }
+broken_snippet: >
+    import java.util.*;
+    import java.util.stream.*;
+    import static java.util.stream.Collectors.*;
+    
+    class GroupByFirstLetter {
+        public static void main(String[] args) {
+            List<String> words = Arrays.asList("apple", "banana", "apricot", "blueberry", "avocado");
+    
+            Map<Character, List<String>> grouped = words.stream()
+                    .collect(groupingBy(s -> s.charAt0)));
+    
+            System.out.println(grouped);
+            // {a=[apple, apricot, avocado], b=[banana, blueberry]}
+        }
+    }

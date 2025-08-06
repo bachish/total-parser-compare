@@ -1,0 +1,17 @@
+error: OPEN_BRACKET_EXPECTED
+original_code: >
+    class ReverseString {
+        public static void main(String[] args) {
+            String input = "hello world";
+            String reversed = new StringBuilder(input).reverse().toString();
+            System.out.println(reversed);
+        }
+    }
+broken_snippet: >
+    class ReverseString {
+        public static void main(String[] args) {
+            String input = "hello world";
+            String reversed = new StringBuilderinput).reverse().toString();
+            System.out.println(reversed);
+        }
+    }

@@ -1,0 +1,25 @@
+error: OPEN_BRACKET_EXPECTED
+original_code: >
+    import java.util.*;
+    import java.util.stream.*;
+    
+    class SumNumbers {
+        public static void main(String[] args) {
+            List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5);
+            int sum = numbers.stream()
+                    .reduce(0, Integer::sum);
+            System.out.println("Sum: " + sum); // 15
+        }
+    }
+broken_snippet: >
+    import java.util.*;
+    import java.util.stream.*;
+    
+    class SumNumbers {
+        public static void main(String[] args) {
+            List<Integer> numbers = Arrays.asList1, 2, 3, 4, 5);
+            int sum = numbers.stream()
+                    .reduce(0, Integer::sum);
+            System.out.println("Sum: " + sum); // 15
+        }
+    }
