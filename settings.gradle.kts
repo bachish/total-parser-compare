@@ -4,3 +4,4 @@ plugins {
 rootProject.name = "total-comparator"
 includeBuild("errecfuzz")
 includeBuild("parser-compare")
+includeBuild("runners")
