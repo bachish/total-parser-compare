@@ -12,6 +12,8 @@ import parsers.AnalyzerType.*
 import parsers.ParserFactory
 import java.nio.file.Files
 import java.nio.file.Path
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.io.path.*
 
 /**
@@ -21,6 +23,13 @@ fun main(args: Array<String>) {
     CollectResult().main(args)
 }
 
+val sdf = SimpleDateFormat("dd-M-yyyy_hh-mm-ss")
+val currentDate = sdf.format(Date())
+fun getResultFileName(output: Path, yamlName: String, parser: AnalyzerType): Path {
+    return output
+        // .resolve(currentDate.toString()) //if we need folder per date
+        .resolve(yamlName + "_${parser}")
+}
 /**
  * Parsers which can be used in evluation.
  */
@@ -58,24 +67,23 @@ class CollectResult : CliktCommand() {
     }
 }
 
-fun testRun() {
-    evaluate(Path.of("gen","dataset"), Path.of("gen", "results"))
-}
-
 fun evaluate(pathWithData: Path, pathToStoreResults: Path) {
     for (testCase in Files.list(pathWithData)) {
         evaluateForAllParsers(testCase.readText(), testCase.nameWithoutExtension, pathToStoreResults)
     }
 }
-
-
 fun evaluateForAllParsers(yamlContent: String, yamlName: String, output: Path) {
     val request = Yaml.default.decodeFromString(EvaluateRecoveryRequest.serializer(), yamlContent)
+    evaluateForAllParsers(request, yamlName, output)
+}
+
+fun evaluateForAllParsers(request: EvaluateRecoveryRequest, yamlName: String, output: Path) {
     for (parser in parsers) {
-        val pathToSave = output.resolve(yamlName + "_${parser}")
+        val pathToSave = getResultFileName(output, yamlName, parser)
         if (pathToSave.exists()) {
             continue
         }
+        Files.createDirectories(pathToSave.parent)
         val result = evaluate(request, parser, yamlName)
         val yamlResult = Yaml.default.encodeToString(EvaluateRecoveryResponse.serializer(), result)
         pathToSave.writeText(yamlResult)
@@ -90,17 +98,17 @@ fun evaluate(
     val speedOnError: Long = parser.measureParse(request.brokenSnippet)
     val collectedErrors: List<ErrorInfo> = parser.getErrors(request.brokenSnippet)
     val ted: Double = parser.getTreeEditDistance(request.originalCode, request.brokenSnippet)
-    val similarityScore: Double
-    val similarityScoreWithCorrectCode: Double
+    val similarityScore_LexerVsParserTokens: Double
+    val similarityScore_RecoveredVsCorrectCodeTokens: Double
     if(parser is parsers.javac.JavacAnalyzer) {
         //javac does not save most terminals in leaves,
         //so we can't calculate similarity for it in old way
-        similarityScore = -1.0
-        similarityScoreWithCorrectCode = -1.0
+        similarityScore_LexerVsParserTokens = -1.0
+        similarityScore_RecoveredVsCorrectCodeTokens = -1.0
     }
     else{
-        similarityScore = parser.calculateSimilarity(request.brokenSnippet)
-        similarityScoreWithCorrectCode = parser.calculateSimilarity(request.originalCode, request.brokenSnippet)
+        similarityScore_LexerVsParserTokens = parser.calculateSimilarity(request.brokenSnippet)
+        similarityScore_RecoveredVsCorrectCodeTokens = parser.calculateSimilarity(request.originalCode, request.brokenSnippet)
     }
 
     return EvaluateRecoveryResponse(
@@ -112,8 +120,8 @@ fun evaluate(
         speedOnError,
         collectedErrors,
         ted,
-        similarityScore,
-        similarityScoreWithCorrectCode,
+        similarityScore_LexerVsParserTokens,
+        similarityScore_RecoveredVsCorrectCodeTokens,
         parserType,
         originalYamlName
     )
@@ -137,8 +145,8 @@ data class EvaluateRecoveryResponse(
     val speedOnError: Long,
     val collectedErrors: List<ErrorInfo>,
     val ted: Double,
-    val similarityScore: Double,
-    val similarityScoreWithCorrectCode: Double,
+    val similarityScore_LexerVsParserTokens: Double,
+    val similarityScore_RecoveredVsCorrectCodeTokens: Double,
     val parser: AnalyzerType,
     val originalYamlName: String?
 )
