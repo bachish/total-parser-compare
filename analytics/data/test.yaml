@@ -1,0 +1,13 @@
+parser: "JavacAnalyzer"
+request:
+  error:
+    type: "ADDED_TOKEN"
+    affectedToken: "{"
+  dataset: "junit4-r4.12"
+  originalCode: "package org.junit.tests.experimental.theories.extendingwithstubs;\n\
+    \npublic interface Correspondent {\n\n    String getAnswer(String question, String...\
+    \ bucket);\n\n}\n"
+  brokenSnippet: "package org.junit.tests.experimental.theories.extendingwithstubs;\n\
+    \npublic interface Correspondent { {\n\n    String getAnswer(String question,\
+    \ String... bucket);\n\n}\n"
+error: "java.lang.IllegalArgumentException: graph2 must be a tree!"

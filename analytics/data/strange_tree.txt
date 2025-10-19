@@ -1,0 +1,35 @@
+PACKAGE: package org.junit.tests.experimental.theories.extendingwithstubs;
+
+  MEMBER_SELECT: org.junit.tests.experimental.theories.extendingwithstubs
+    MEMBER_SELECT: org.junit.tests.experimental.theories
+      MEMBER_SELECT: org.junit.tests.experimental
+        MEMBER_SELECT: org.junit.tests
+          MEMBER_SELECT: org.junit
+            IDENTIFIER: org
+INTERFACE:
+public interface Correspondent {
+    {
+        String getAnswer;
+        String question;
+        String String;
+        (ERROR);
+    }
+}
+  MODIFIERS: public interface
+  BLOCK: {
+    String getAnswer;
+    String question;
+    String String;
+    (ERROR);
+}
+    VARIABLE: String getAnswer
+      MODIFIERS:
+      IDENTIFIER: String
+    VARIABLE: String question
+      MODIFIERS:
+      IDENTIFIER: String
+    VARIABLE: String String
+      MODIFIERS:
+      IDENTIFIER: String
+    EXPRESSION_STATEMENT: (ERROR);
+      ERRONEOUS: (ERROR)

@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm") version "2.2.0"
     kotlin("plugin.serialization") version "1.9.0"
+    `kotlin-dsl`
     application
 }
 kotlin {
@@ -9,6 +10,7 @@ kotlin {
 
 repositories {
     mavenCentral()
+    gradlePluginPortal()
 }
 
 dependencies {
@@ -17,12 +19,18 @@ dependencies {
 
     testImplementation(kotlin("test")) // optional but fine
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.3")
+    testImplementation("errecfuzz:app")
+
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     // https://mvnrepository.com/artifact/com.charleskorn.kaml/kaml-jvm
     // add yaml support to kotlinx serialization
     implementation("com.charleskorn.kaml:kaml-jvm:0.85.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("errecfuzz:app")
+    implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
+    runtimeOnly("org.slf4j:slf4j-simple:2.0.16")
+
 }
 
 java {
@@ -34,6 +42,7 @@ java {
 application {
     mainClass.set("runners.FuzrecRunnerKt")
     applicationDefaultJvmArgs = listOf(
+        "-Xmx4g", "-Xms4g",
         "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
         "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
         "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
@@ -43,7 +52,7 @@ application {
 
 tasks.test {
     useJUnitPlatform()
-    jvmArgs(
+    jvmArgs("-Xmx8g", "-Xms4g",
         "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
         "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
         "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
@@ -51,4 +60,5 @@ tasks.test {
     )
 }
 
+//tasks.register<runners.runners.RunOneFile>("progs")
 

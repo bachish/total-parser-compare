@@ -4,6 +4,7 @@ import com.charleskorn.kaml.Yaml
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.path
+import dev.errecfuzz.EvaluateRecoveryRequest
 import kotlinx.serialization.Serializable
 import measure.ErrorInfo
 import measure.ParseError
@@ -15,6 +16,9 @@ import java.nio.file.Path
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.io.path.*
+import java.util.logging.Logger
+
+private val log = Logger.getLogger("App")
 
 /**
  * Run all experiments on given dataset in yaml-format.
@@ -23,12 +27,19 @@ fun main(args: Array<String>) {
     CollectResult().main(args)
 }
 
+
 val sdf = SimpleDateFormat("dd-M-yyyy_hh-mm-ss")
 val currentDate = sdf.format(Date())
 fun getResultFileName(output: Path, yamlName: String, parser: AnalyzerType): Path {
     return output
         // .resolve(currentDate.toString()) //if we need folder per date
-        .resolve(yamlName + "_${parser}")
+        .resolve(parser.name).resolve(yamlName)
+}
+
+fun getErrorFileName(output: Path, yamlName: String, parser: AnalyzerType): Path {
+    return output
+        // .resolve(currentDate.toString()) //if we need folder per date
+        .resolve("error").resolve(parser.name).resolve(yamlName)
 }
 /**
  * Parsers which can be used in evluation.
@@ -56,27 +67,40 @@ class CollectResult : CliktCommand() {
 
 
         when {
-            input!!.exists() && !input!!.isDirectory() -> {
-                echo("Input path exists and is not a directory", err = true)
+            !input!!.exists()  -> {
+                echo("Input does not exists", err = true)
                 return
             }
-
             !output!!.exists() -> Files.createDirectories(output!!)
         }
         evaluate(input!!, output!!)
     }
 }
 
-fun evaluate(pathWithData: Path, pathToStoreResults: Path) {
-    for (testCase in Files.list(pathWithData)) {
+fun evaluateForEachFileInDir(input: Path, pathToStoreResults: Path){
+    var idx = 0
+    val files = Files.list(input).toList()
+    var datasetSize = files.size
+    for (testCase in files) {
         evaluateForAllParsers(testCase.readText(), testCase.nameWithoutExtension, pathToStoreResults)
+        log.info("${++idx}/$datasetSize")
     }
+}
+fun evaluate(input: Path, pathToStoreResults: Path) {
+    if(input.isDirectory()){
+        evaluateForEachFileInDir(input, pathToStoreResults)
+    }
+    else {
+        evaluateForAllParsers(input.readText(), input.nameWithoutExtension, pathToStoreResults)
+    }
+
 }
 fun evaluateForAllParsers(yamlContent: String, yamlName: String, output: Path) {
     val request = Yaml.default.decodeFromString(EvaluateRecoveryRequest.serializer(), yamlContent)
     evaluateForAllParsers(request, yamlName, output)
 }
-
+@Serializable
+data class FailedRequest(val parser: AnalyzerType, val request: EvaluateRecoveryRequest, val error: String);
 fun evaluateForAllParsers(request: EvaluateRecoveryRequest, yamlName: String, output: Path) {
     for (parser in parsers) {
         val pathToSave = getResultFileName(output, yamlName, parser)
@@ -84,9 +108,18 @@ fun evaluateForAllParsers(request: EvaluateRecoveryRequest, yamlName: String, ou
             continue
         }
         Files.createDirectories(pathToSave.parent)
-        val result = evaluate(request, parser, yamlName)
-        val yamlResult = Yaml.default.encodeToString(EvaluateRecoveryResponse.serializer(), result)
-        pathToSave.writeText(yamlResult)
+        try {
+            val result = evaluate(request, parser, yamlName)
+            val yamlResult = Yaml.default.encodeToString(EvaluateRecoveryResponse.serializer(), result)
+            pathToSave.writeText(yamlResult)
+
+        } catch (e: Throwable) {
+            log.severe("ERROR! ${e} on $parser parser")
+            val errorPath = getErrorFileName(output, yamlName, parser)
+            Files.createDirectories(errorPath.parent)
+            val errorInfo = FailedRequest(parser, request, e.toString())
+            Files.writeString(errorPath, Yaml.default.encodeToString(FailedRequest.serializer(), errorInfo))
+        }
     }
 }
 
@@ -127,13 +160,6 @@ fun evaluate(
     )
 }
 
-@Serializable
-data class EvaluateRecoveryRequest(
-    val error: ParseError,
-    val dataset: String,
-    val originalCode: String,
-    val brokenSnippet: String,
-)
 
 @Serializable
 data class EvaluateRecoveryResponse(
